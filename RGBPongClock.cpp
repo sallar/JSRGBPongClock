@@ -20,18 +20,14 @@
 */
 
 
-#include "Adafruit_mfGFX.h"   // Core graphics library
-#include "RGBmatrixPanel.h" // Hardware-specific library
+// #include "Adafruit_mfGFX.h"   // Core graphics library
+// #include "RGBmatrixPanel.h" // Hardware-specific library
 #include "fix_fft.h"
 #include "blinky.h"
 #include "font3x5.h"
 #include "font5x5.h"
 
 //#define DEBUGME
-
-SYSTEM_THREAD(ENABLED);
-SYSTEM_MODE(SEMI_AUTOMATIC);
-
 
 // allow us to use itoa() in this scope
 extern char* itoa(int a, char* buffer, unsigned char radix);
@@ -46,29 +42,6 @@ extern char* itoa(int a, char* buffer, unsigned char radix);
 	#define DEBUGp(message)
 	#define DEBUGpln(message)
 #endif
-
-
-/** Define RGB matrix panel GPIO pins **/
-#if defined (STM32F10X_MD)	//Core
-	#define CLK D6
-	#define OE  D7
-	#define LAT A4
-	#define A   A0
-	#define B   A1
-	#define C   A2
-	#define D	A3
-#endif
-
-#if defined (STM32F2XX)	//Photon
-	#define CLK D6
-	#define OE  D7
-	#define LAT A4
-	#define A   A0
-	#define B   A1
-	#define C   A2
-	#define D	A3
-#endif
-/****************************************/
 
 #define SHOWCLOCK 10000  
 #define MAX_CLOCK_MODE		7                 // Number of clock modes
@@ -154,12 +127,7 @@ const SpecialDays ourHolidays[] = {  //keep message to < 40 chars
 /***************************************/
 
 /***** Create RGBmatrix Panel instance *****
- Last parameter = 'true' enables double-buffering, for flicker-free,
- buttery smooth animation.  Note that NOTHING WILL SHOW ON THE DISPLAY
- until the first call to swapBuffers().  This is normal. */
-RGBmatrixPanel matrix(A, B, C, CLK, LAT, OE, true, 32);	// 16x32
-//RGBmatrixPanel matrix(A, B, C, D,CLK, LAT, OE, true, 32);	// 32x32
-//RGBmatrixPanel matrix(A, B, C, D,CLK, LAT, OE, true, 64); // 64x32
+//RGBmatrixPanel matrix(A, B, C, CLK, LAT, OE, true, 32);	// 16x32
 /*******************************************/
 
 int stringPos;
@@ -310,26 +278,10 @@ void setup() {
 
 	unsigned long resetTime;
 
-	// !!!!! Add timeout code here if can't connect
-	Spark.connect();
-	while (!Spark.connected()) Spark.process();
-	
-	// May need to move to loop() if can't connect
-	Spark.publish("RGBPongClock", RGBPCversion, 60, PRIVATE);
-	Spark.process();	// Force processing of Spark.publish()
-	// ************************************************
-
 	
 #if defined (DEBUGME)
 	Serial.begin(115200);
 #endif
-
-	Spark.variable("city", city, STRING);	// !!! FOR DEBUGGING ONLY !!!
-	Spark.variable("cmode", &clock_mode, INT);
-	
-	Spark.function("setMode", setMode);		// Receive mode commands
-	Spark.subscribe(HOOK_RESP, processWeather, MY_DEVICES);	// Lets listen for the hook response
-	
 	
 	// !!!! May need to copy to loop() if disconnect/connect
 	do {
@@ -388,7 +340,6 @@ void loop()
     // Add wifi/cloud connection retry code here
     // !!!  Add code for re-syncing time every 24 hrs  !!!
     if ((millis() - updateCTime) > (24UL * 60UL * 60UL * 1000UL)) {
-      Spark.syncTime();
       updateCTime = millis();
     }
 
@@ -630,13 +581,9 @@ void getWeather(){
 	strcat(vars, "}");
 	
 	weatherGood = false;
-	// publish the event with city data that will trigger the webhook
-	//Spark.publish(HOOK_PUB, city, 60, PRIVATE);
-	Spark.publish(HOOK_PUB, vars, 60, PRIVATE);
 
 	unsigned long wait = millis();
 	while(!weatherGood && (millis() < wait + 5000UL))	//wait for subscribe to kick in or 5 secs
-		Spark.process();
 
 	if (!weatherGood) {
 		DEBUGpln("Weather update failed");
@@ -740,8 +687,6 @@ void showWeather(){
 
 		matrix.swapBuffers(true);
 		drawWeatherIcon(16,0,atoi(w_id[i]));
-
-		Spark.process();	//Give the background process some lovin'
 
 	}
 }
@@ -858,7 +803,6 @@ void drawWeatherIcon(uint8_t x, uint8_t y, int id){
 			}
 		} 
 		matrix.swapBuffers(false);
-		Spark.process();	//Give the background process some lovin'
 		delay(( 50 -( intensity * 10 )) < 0 ? 0: 50-intensity*10);
 	}
 }
@@ -875,7 +819,6 @@ void scrollBigMessage(char *m){
 		matrix.print(m);
 		matrix.swapBuffers(false);
 		delay(50);
-		Spark.process();
 	}
 
 }
@@ -895,7 +838,6 @@ void scrollMessage(char* top, char* bottom ,uint8_t top_font_size,uint8_t bottom
 		drawString(i,9,bottom, bottom_font_size, bottom_color);
 		matrix.swapBuffers(false);
 		delay(50);
-		Spark.process();
 	}
 
 }
@@ -936,7 +878,6 @@ void pacMan(){
 			if(powerPillEaten>3) drawScaredGhost(i-68,0);
 
 			matrix.swapBuffers(false);    
-			while(millis()-nowish<50) Spark.process();	//Give the background process some lovin'
 		}
 		powerPillEaten = 0;
 	}
@@ -981,7 +922,6 @@ void pacMan(){
 				if(numGhosts>3) drawScaredGhost(i-68-(i-19)*2,0);
 			}
 			matrix.swapBuffers(false);
-			while(millis()-nowish<50) Spark.process();	//Give the background process some lovin'
 		}
 	}
 #endif //usePACMAN
@@ -1368,7 +1308,6 @@ void pong(){
 			restart = 1; 
 		}
 
-		Spark.process();	//Give the background process some lovin'
 		delay(40);
 		matrix.swapBuffers(false);
 	} 
@@ -1727,7 +1666,6 @@ void word_clock() {
 			drawString(offset_bot,(lenmid>1?10:8),str_bot,(lenbot<6?53:51),matrix.Color333(0,5,1));    
 			matrix.swapBuffers(false);
 		}
-		Spark.process();	//Give the background process some lovin'
 		delay (50); 
 	}
 }
@@ -1886,7 +1824,6 @@ void jumble() {
 					if (mode_changed == 1)
 					return;
 				}
-				Spark.process();//Give the background process some lovin'
 			}
 		}
 		delay(50);
@@ -1934,7 +1871,6 @@ void display_date()
 		flashing_cursor(i*4,0,3,5,1);  
 	} 
 	else {
-		Spark.process();	//Give the background process some lovin'
 		delay(300);
 	}
 
@@ -2080,7 +2016,6 @@ void flashing_cursor(byte xpos, byte ypos, byte cursor_width, byte cursor_height
 		if (repeats > 0) {
 			delay(400); 
 		}
-		Spark.process();	//Give the background process some lovin'
 	}
 }
 
@@ -2345,7 +2280,6 @@ void spectrumDisplay(){
 
 		if(++colCount >= 10) colCount = 0;
 		
-		Spark.process();	//Give the background process some lovin'
 	}
 
 #endif
@@ -2437,7 +2371,6 @@ void plasma()
 			
 			slowFrameRate = millis();
 		}
-		Spark.process();	//Give the background process some lovin'
 		delay(30);
 	}
 }
@@ -2477,7 +2410,6 @@ void marquee()
 		
 		delay(50);
 		
-		Spark.process();
 	}
 }
 
@@ -2602,14 +2534,3 @@ bool IsDst(int day, int month, int dayOfWeek)
   }
 }
 #endif
-
-
-
-
-
-
-
-
-
-
-
