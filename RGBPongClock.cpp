@@ -19,6 +19,13 @@
 ** 
 */
 
+#include <stdint.h>
+#include <stdbool.h>
+#include <stdio.h>
+
+typedef unsigned char byte;
+typedef bool boolean;
+typedef char* String;
 
 // #include "Adafruit_mfGFX.h"   // Core graphics library
 // #include "RGBmatrixPanel.h" // Hardware-specific library

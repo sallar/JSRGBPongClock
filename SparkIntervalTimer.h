@@ -25,9 +25,6 @@ SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE. */
 #ifndef __INTERVALTIMER_H__
 #define __INTERVALTIMER_H__
 
-#include "application.h"
-
-
 #if defined(STM32F10X_MD) || !defined(PLATFORM_ID)		//Core
   #define SYSCORECLOCK	72000000UL
 

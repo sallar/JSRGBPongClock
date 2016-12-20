@@ -1,4 +1,3 @@
-#include "application.h"
 #define PROGMEM
 
 // copied from http://heim.ifi.uio.no/haakoh/avr/a
