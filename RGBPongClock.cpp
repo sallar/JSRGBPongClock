@@ -249,7 +249,7 @@ TimerObject clock_off = {20, 0};  //night time mode start time
 int Power_Mode = 1;  
 
 /************ PROTOTYPES **************/
-int setMode(String command);
+// int setMode(String command);
 void quickWeather();
 void getWeather();
 void processWeather(const char *name, const char *data);
@@ -415,85 +415,8 @@ void loop()
   }
 }
 
-int setMode(String command)
-{
-/*
-	int p = 0;
-	while (p<(int)command.length()) {
-		int i = command.indexOf(',',p);
-		if (i<0) i = command.length();
-		
-		int j = command.indexOf('=',p);
-		if (j<0) return -1;
-		
-		String key = command.substring(p,j);
-		String value = command.substring(j+1,i);
-		int val = value.toInt();
-		
-		// global params
-		if(key == "normal")
-		{
-			mode_changed = 1;
-			clock_mode = 0;
-		}
-		else if(key == "pong")
-		{
-			mode_changed = 1;
-			clock_mode = 1;
-		}
-		else if(key == "word")
-		{
-			mode_changed = 1;
-			clock_mode = 2;
-		}
-		else if(key == "jumble")
-		{
-			mode_changed = 1;
-			clock_mode = 3;
-		}
-		else if(key == "spectrum")
-		{
-			mode_changed = 1;
-			clock_mode = 4;
-		}
-		else if(key == "quick")
-		{
-			mode_quick = true;
-			return 1;
-		}
-		else if(key == "plasma")
-		{
-			mode_changed = 1;
-			clock_mode = 5;
-		}
-		else if(key == "marquee")
-		{
-			mode_changed = 1;
-			clock_mode = 6;
-		}
-		else if(key == "city")
-		{
-			unsigned char tmp[20] = "";
-			int p = value.length();
-			//command.getBytes(value, 0, j+1);
-			command.getBytes(value, 0, p);
-			strcpy(city, "{\"mycity\": \"");
-			strcat(city, (const char *)tmp);
-			strcat(city, "\" }");
-			weatherGood = false;
-			return 1;
-		}
-		if (mode_changed == 1) {
-			modeSwitch = millis();
-			return 1;
-		}	  
-		else return -1;
-
-		p = i+1;
-		}
-	return 1;
-}
-*/	
+/*int setMode(String command)
+{	
 	
 	mode_changed = 0;
 
@@ -558,7 +481,7 @@ int setMode(String command)
 	else return -1;
 	
 }
-
+*/
 
 //*****************Weather Stuff*********************
 
