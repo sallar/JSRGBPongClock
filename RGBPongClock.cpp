@@ -21,11 +21,22 @@
 
 #include <stdint.h>
 #include <stdbool.h>
+#include <string.h>
 #include <stdio.h>
+#include <emscripten.h>
+
+#include "time.h"
 
 typedef unsigned char byte;
 typedef bool boolean;
 typedef char* String;
+
+int second() {
+  int s = EM_ASM_INT({
+		return new Date().getTime() / 1000;
+	});
+  return s;
+}
 
 // #include "Adafruit_mfGFX.h"   // Core graphics library
 // #include "RGBmatrixPanel.h" // Hardware-specific library
@@ -292,7 +303,7 @@ void setup() {
 	
 	// !!!! May need to copy to loop() if disconnect/connect
 	do {
-		resetTime = Time.now();        // the current time = time of last reset
+		resetTime = Time::now();        // the current time = time of last reset
 		delay(10);
 	} while (resetTime < 1000000 && millis() < 20000); // wait for a reasonable epoc time, but not longer than 20 seconds
 
@@ -300,9 +311,6 @@ void setup() {
 		DEBUGpln("Unable to sync time");
 	else
 		DEBUGpln("RTC has set been synced");  
-
-	// Needs to be set via Spark.function and store in EEPROM!!
-	Time.zone(-4);
 
 	matrix.begin();
 	matrix.setTextWrap(false); // Allow text to run off right edge
@@ -318,8 +326,6 @@ void setup() {
 		maxLvlAvg[i] = 255;
 	}
 #endif
-
-	randomSeed(analogRead(A7));
 	
 	//*** RESTORE CITY FROM EEPROM - IF NOT PREVIOUSLY FLASHED, STORE DEFAULT CITY
 
@@ -335,12 +341,8 @@ void setup() {
 
 void loop()
 {
-	
-#if defined(DST_NORTH_AMERICA) || defined(DST_CENTRAL_EUROPE)
-  Time.zone(IsDST(Time.day(), Time.month(), Time.weekday()) ? summerOffset : winterOffset);
-#endif
 
-  int Power_Mode = timerEvaluate(clock_on, clock_off, Time.now());  // comment out to skip night time mode
+  int Power_Mode = timerEvaluate(clock_on, clock_off, Time::now());  // comment out to skip night time mode
 
   if (Power_Mode == 1)
   {
@@ -570,7 +572,6 @@ void quickWeather(){
 		cls();
 		matrix.drawPixel(0,0,matrix.Color333(1,0,0));
 		matrix.swapBuffers(true);
-		Spark.process();
 		delay(1000);
 	}
 }
@@ -595,8 +596,8 @@ void getWeather(){
 	if (!weatherGood) {
 		DEBUGpln("Weather update failed");
 		badWeatherCall++;
-		if (badWeatherCall > 4)		//If 3 webhook call fail in a row, do a system reset
-			System.reset();
+		// if (badWeatherCall > 4)		//If 3 webhook call fail in a row, do a system reset
+		// 	System.reset();
 	}
 	else
 		badWeatherCall = 0;
@@ -646,7 +647,7 @@ void processWeather(const char *name, const char *data){
 }
 
 void showWeather(){
-	byte dow = Time.weekday()-1;
+	byte dow = Time::weekday()-1;
 	char daynames[7][4]={
 		"Sun", "Mon","Tue", "Wed", "Thu", "Fri", "Sat"
 	};
@@ -1000,13 +1001,13 @@ void pong(){
 	cls();
 
 //	for(int i=0; i< SHOWCLOCK; i++) {
-	int showTime = Time.now();
+	int showTime = Time::now();
 	
-	while((Time.now() - showTime) < showClock) {
+	while((Time::now() - showTime) < showClock) {
 		cls();
 		//draw pitch centre line
 		int adjust = 0;
-		if(Time.second()%2==0)adjust=1;
+		if(Time::second()%2==0)adjust=1;
 		for (byte i = 0; i <16; i++) {
 			if ( i % 2 == 0 ) { //plot point if an even number
 				matrix.drawPixel(16,i+adjust,matrix.Color333(0,4,0));
@@ -1026,8 +1027,8 @@ void pong(){
 
 		int ampm=0;
 		//update score / time
-		byte mins = Time.minute();
-		byte hours = Time.hour();
+		byte mins = Time::minute();
+		byte hours = Time::hour();
 		if (hours > 12) {
 			hours = hours - ampm * 12;
 		}
@@ -1081,11 +1082,11 @@ void pong(){
 		}
 
 		//if coming up to the minute: secs = 59 and mins < 59, flag bat 2 (right side) to miss the return so we inc the minutes score
-		if (Time.second() == 59 && Time.minute() < 59){
+		if (Time::second() == 59 && Time::minute() < 59){
 			bat1miss = 1;
 		}
 		// if coming up to the hour: secs = 59  and mins = 59, flag bat 1 (left side) to miss the return, so we inc the hours score.
-		if (Time.second() == 59 && Time.minute() == 59){
+		if (Time::second() == 59 && Time::minute() == 59){
 			bat2miss = 1;
 		}
 
@@ -1341,8 +1342,8 @@ void normal_clock()
 	matrix.setTextColor(matrix.Color333(2, 3, 2));
 
 	cls();
-	byte hours = Time.hour();
-	byte mins = Time.minute();
+	byte hours = Time::hour();
+	byte mins = Time::minute();
 
 	int  msHourPosition = 0;
 	int  lsHourPosition = 0;
@@ -1368,9 +1369,9 @@ void normal_clock()
 
 	//loop to display the clock for a set duration of SHOWCLOCK
 	//for (int show = 0; show < SHOWCLOCK ; show++) {
-	int showTime = Time.now();
+	int showTime = Time::now();
 	
-	while((Time.now() - showTime) < showClock) {
+	while((Time::now() - showTime) < showClock) {
 		cls();
 
 		if (mode_changed == 1)
@@ -1384,8 +1385,8 @@ void normal_clock()
 		}
 
 		//udate mins and hours with the new time
-		mins = Time.minute();
-		hours = Time.hour();
+		mins = Time::minute();
+		hours = Time::hour();
 
 		char buffer[3];
 
@@ -1421,11 +1422,11 @@ void normal_clock()
 		if(c1==0) lastHourBuffer[0]=buffer[0];
 		if(c2==0) lastHourBuffer[1]=buffer[1];
 
-		matrix.fillRect(16,5,2,2,matrix.Color444(0,0,Time.second()%2));
-		matrix.fillRect(16,11,2,2,matrix.Color444(0,0,Time.second()%2));
+		matrix.fillRect(16,5,2,2,matrix.Color444(0,0,Time::second()%2));
+		matrix.fillRect(16,11,2,2,matrix.Color444(0,0,Time::second()%2));
 
-		matrix.fillRect(15,4,2,2,matrix.Color444(Time.second()%2,Time.second()%2,Time.second()%2));
-		matrix.fillRect(15,10,2,2,matrix.Color444(Time.second()%2,Time.second()%2,Time.second()%2));
+		matrix.fillRect(15,4,2,2,matrix.Color444(Time::second()%2,Time::second()%2,Time::second()%2));
+		matrix.fillRect(15,10,2,2,matrix.Color444(Time::second()%2,Time::second()%2,Time::second()%2));
 
 		itoa (mins, buffer, 10);
 		if (mins < 10) {
@@ -1457,7 +1458,6 @@ void normal_clock()
 		if(c4==0) lastMinBuffer[1]=buffer[1];
 
 		matrix.swapBuffers(false); 
-		Spark.process();	//Give the background process some lovin'
 	}
 }
 
@@ -1544,8 +1544,8 @@ void word_clock() {
 
 //	byte hours_y, mins_y; //hours and mins and positions for hours and mins lines  
 
-	byte hours = Time.hour();
-	byte mins  = Time.minute();
+	byte hours = Time::hour();
+	byte mins  = Time::minute();
 
 	//loop to display the clock for a set duration of SHOWCLOCK
 	for (int show = 0; show < SHOWCLOCK ; show++) {
@@ -1561,11 +1561,11 @@ void word_clock() {
 		}
 
 		//print the time if it has changed or if we have just come into the subroutine
-		if ( show == 0 || mins != Time.minute() ) {  
+		if ( show == 0 || mins != Time::minute() ) {  
 
 			//reset these for comparison next time
-			mins = Time.minute();   
-			hours = Time.hour();
+			mins = Time::minute();   
+			hours = Time::hour();
 
 			//make hours into 12 hour format
 			if (hours > 12){ 
@@ -1687,7 +1687,7 @@ void jumble() {
 		"ABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890"                  };
 	char endchar[16];
 	byte counter[16];
-	byte mins = Time.minute();
+	byte mins = Time::minute();
 	byte seq[16];
 
 	DEBUGpln("in Jumble");
@@ -1705,7 +1705,7 @@ void jumble() {
 			return;
 		}
 
-		if ( show == 0 || mins != Time.minute()  ) {  
+		if ( show == 0 || mins != Time::minute()  ) {  
 			//fill an arry with 0-15 and randomize the order so we can plot letters in a jumbled pattern rather than sequentially
 			for (int i=0; i<16; i++) {
 				seq[i] = i;  // fill the array in order
@@ -1719,10 +1719,10 @@ void jumble() {
 			}
 
 			//reset these for comparison next time
-			mins = Time.minute();
-			byte hours = Time.hour();   
-			byte dow   = Time.weekday() - 1; // the DS1307 outputs 1 - 7. 
-			byte date  = Time.day();
+			mins = Time::minute();
+			byte hours = Time::hour();   
+			byte dow   = Time::weekday() - 1; // the DS1307 outputs 1 - 7. 
+			byte date  = Time::day();
 
 			byte alldone = 0;
 
@@ -1846,9 +1846,9 @@ void display_date()
 	matrix.swapBuffers(true);
 	//read the date from the DS1307
 	//it returns the month number, day number, and a number representing the day of week - 1 for Tue, 2 for Wed 3 for Thu etc.
-	byte dow = Time.weekday()-1;		//we  take one off the value the DS1307 generates, as our array of days is 0-6 and the DS1307 outputs  1-7.
-	byte date = Time.day();
-	byte mont = Time.month()-1; 
+	byte dow = Time::weekday()-1;		//we  take one off the value the DS1307 generates, as our array of days is 0-6 and the DS1307 outputs  1-7.
+	byte date = Time::day();
+	byte mont = Time::month()-1; 
 
 	//array of day and month names to print on the display. Some are shortened as we only have 8 characters across to play with 
 	char daynames[7][9]={
@@ -2163,9 +2163,9 @@ void spectrumDisplay(){
 
 	cls();
 	//for (int show = 0; show < SHOWCLOCK ; show++) {
-	int showTime = Time.now();
+	int showTime = Time::now();
 	
-	while((Time.now() - showTime) < showClock) {
+	while((Time::now() - showTime) < showClock) {
 		if (mode_changed == 1)
 		return;	
 		if(mode_quick){
@@ -2247,8 +2247,8 @@ void spectrumDisplay(){
 			i=0;
 		}
 
-		int mins = Time.minute();
-		int hours = Time.hour();
+		int mins = Time::minute();
+		int hours = Time::hour();
 
 		char buffer[3];
 
@@ -2303,9 +2303,9 @@ void plasma()
 	cls();
 	
 	//for (int show = 0; show < SHOWCLOCK ; show++) {
-	int showTime = Time.now();
+	int showTime = Time::now();
 	
-	while((Time.now() - showTime) < showClock) {		
+	while((Time::now() - showTime) < showClock) {		
 		if (mode_changed == 1)
 		return;	
 		if(mode_quick){
@@ -2349,8 +2349,8 @@ void plasma()
 
 			matrix.fillRect(7, 0, 19, 7, 0);
 			
-			int mins = Time.minute();
-			int hours = Time.hour();
+			int mins = Time::minute();
+			int hours = Time::hour();
 			char buffer[3];
 
 			itoa(hours,buffer,10);
@@ -2393,9 +2393,9 @@ void marquee()
 	String tFull;
 	
 	//for (int show = 0; show < SHOWCLOCK ; show++) {
-	int showTime = Time.now();
+	int showTime = Time::now();
 	
-	while((Time.now() - showTime) < showClock) {
+	while((Time::now() - showTime) < showClock) {
 
 		if (mode_changed == 1)
 			return;
@@ -2407,7 +2407,7 @@ void marquee()
 			return;
 		}
 		
-		tFull = Time.timeStr();
+		tFull = Time::timeStr();
 		tFull.toUpperCase();
 		tFull.toCharArray(topLine, tFull.length()+1);
 		tFull = "";
@@ -2426,7 +2426,7 @@ char* getMessageOfTheDay()
 {
   for (int i = 0; i < sizeof(ourHolidays) / sizeof(ourHolidays[0]); i++)
   {
-    if (ourHolidays[i].month == Time.month() && ourHolidays[i].day == Time.day())
+    if (ourHolidays[i].month == Time::month() && ourHolidays[i].day == Time::day())
       return ourHolidays[i].message;
   }
   return "  WELCOME TO PONG CLOCK";
@@ -2437,12 +2437,12 @@ char* getMessageOfTheDay()
 void nitelite()
 {
   static int lastSecond = 60;
-  int nowTime = Time.now();
-  int nowHour = Time.hour(nowTime);
+  int nowTime = Time::now();
+  int nowHour = Time::hour(nowTime);
   nowHour %= 12;
   if (nowHour == 0) nowHour = 12;
-  int nowMinute = Time.minute(nowTime);
-  int nowSecond = Time.second(nowTime);
+  int nowMinute = Time::minute(nowTime);
+  int nowSecond = Time::second(nowTime);
   if(lastSecond != nowSecond)
   {
     cls();
@@ -2467,8 +2467,8 @@ void nitelite()
 
 int timerEvaluate(const struct TimerObject on_time, const struct TimerObject off_time, const unsigned int currentTime)
 {
-  unsigned int start_time = tmConvert_t(Time.year(currentTime), Time.month(currentTime), Time.day(currentTime), on_time.hour, on_time.minute, 0);
-  unsigned int end_time = tmConvert_t(Time.year(currentTime), Time.month(currentTime), Time.day(currentTime), off_time.hour, off_time.minute, 0);
+  unsigned int start_time = tmConvert_t(Time::year(currentTime), Time::month(currentTime), Time::day(currentTime), on_time.hour, on_time.minute, 0);
+  unsigned int end_time = tmConvert_t(Time::year(currentTime), Time::month(currentTime), Time::day(currentTime), off_time.hour, off_time.minute, 0);
 
   if (start_time < end_time)
   {
